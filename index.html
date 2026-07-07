@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Connector Finder — 상세 구조 v4 (STL 직전)</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;font-family:-apple-system,'Segoe UI',Roboto,'Malgun Gothic',sans-serif}
+  #app{position:fixed;inset:0;background:radial-gradient(circle at 50% 28%,#2a2f3a,#14161c 68%,#0b0c10)}
+  canvas{display:block}
+  .panel{position:absolute;background:rgba(20,22,28,.82);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.08);border-radius:14px;color:#e8eaf0}
+  #hud{top:16px;left:16px;padding:14px 16px;width:270px}
+  #hud h1{font-size:15px;margin-bottom:2px}#hud .sub{font-size:11px;color:#8b93a7;margin-bottom:12px}
+  .lcd{background:#173d17;border:2px solid #0c260c;border-radius:6px;padding:8px 10px;font-family:'Courier New',monospace;color:#7dff7d;font-weight:700;font-size:13px;line-height:1.5;letter-spacing:1px;text-shadow:0 0 6px rgba(125,255,125,.5);white-space:pre}
+  .ledrow{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:#aeb6c9}
+  .led{width:14px;height:14px;border-radius:50%;box-shadow:0 0 10px currentColor}
+  .stepbadge{margin-top:10px;font-size:12px;color:#cfd5e4}.stepbadge b{color:#7aa2ff}
+  .reading{margin-top:8px;font-size:12px;color:#9aa3b2}.reading b{color:#f2c53d}
+  #controls{bottom:16px;left:50%;transform:translateX(-50%);padding:10px 12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:94vw}
+  button{background:rgba(255,255,255,.06);color:#e8eaf0;border:1px solid rgba(255,255,255,.12);padding:8px 13px;border-radius:9px;font-size:13px;cursor:pointer;transition:.15s;font-weight:600}
+  button:hover{background:rgba(122,162,255,.22);border-color:rgba(122,162,255,.5)}
+  button.primary{background:#3a5bd0;border-color:#4a6be0}button.on{background:#2e7d46;border-color:#3aa05a}
+  #legend{top:16px;right:16px;padding:12px 14px;width:198px;font-size:11.5px}
+  #legend h2{font-size:12px;color:#8b93a7;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+  .lg{display:flex;align-items:center;gap:8px;margin:5px 0;color:#c6ccdb}.sw{width:12px;height:12px;border-radius:3px}
+  #hint{position:absolute;bottom:16px;left:16px;font-size:11px;color:#6a7286;padding:8px 10px}
+  @media (max-width:820px){#legend{display:none}#hud{width:224px}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="hud" class="panel">
+    <h1>AI Connector Finder</h1>
+    <div class="sub">덮개 옆으로 개방 · 열린채 회전 인식</div>
+    <div class="lcd" id="lcd">Ready
+Place sample</div>
+    <div class="ledrow"><span class="led" id="led" style="color:#3a7bff;background:#3a7bff"></span><span id="ledlabel">대기 (Ready)</span></div>
+    <div class="stepbadge">단계: <b id="stepname">IDLE</b></div>
+    <div class="reading" id="reading"></div>
+  </div>
+  <div id="legend" class="panel">
+    <h2>부품</h2>
+    <div class="lg"><span class="sw" style="background:#4a505f"></span>하부 수납 베이스</div>
+    <div class="lg"><span class="sw" style="background:#2e8b57"></span>Pi 4 / <span style="color:#6ea8ff">STM32</span> / <span style="color:#e8c14a">브레드보드</span></div>
+    <div class="lg"><span class="sw" style="background:#3a3f4b"></span>상판 덮개(1칸 구멍)</div>
+    <div class="lg"><span class="sw" style="background:#e2603f"></span>슬라이드 덮개</div>
+    <div class="lg"><span class="sw" style="background:#c9b458"></span>서보(SG90)+혼 링크</div>
+    <div class="lg"><span class="sw" style="background:#c9cfd8"></span>캐러셀(회전)</div>
+    <div class="lg"><span class="sw" style="background:#d98a3a"></span>카메라(구멍 위)</div>
+  </div>
+  <div id="controls" class="panel">
+    <button class="primary" id="play">▶ 동작 재생</button>
+    <button id="next">다음 ▶</button>
+    <button id="prev">◀ 이전</button>
+    <button id="reset">⟲ 리셋</button>
+    <button id="cut">단면 보기</button>
+    <button id="lidcut">덮개 반투명</button>
+    <button id="spin">자동 회전</button>
+  </div>
+  <div id="hint" class="panel">드래그 회전 · 휠 확대 · 재생하면 덮개 열린채 캐러셀이 돌며 인식</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ============================================================
+//  config — 실제 부품 치수 반영 (mm)
+// ============================================================
+const C={
+  carousel_dia:180, car_floor:3, pocket_depth:18, slot_radius:62,
+  pocket_len:30, pocket_wid:22, slot_count:10, hub_dia:16, base_dia:200,
+  cam_h:120,
+  bay_h:55, base_floor:4,
+  lid_th:4, win_len:40, win_wid:34,      // 상판 구멍(스캔/배출)
+  // --- 슬라이드 덮개 ---
+  slide_th:3, slide_over:6,               // 덮개 두께, 구멍보다 큰 여유
+  slide_travel:52,                        // 옆으로 열리는 거리
+  slide_rail:6,                           // 레일 높이
+  // --- SG90 서보 (실측 공칭) ---
+  sg_l:23, sg_w:12.5, sg_h:22.5, sg_lug:32.5, sg_tab_h:2.5, sg_horn_r:10,
+  // --- LCD1602 모듈 ---
+  lcd_mod_w:80, lcd_mod_h:36, lcd_win_w:71.5, lcd_win_h:25,
+  lcd_hole_x:75, lcd_hole_y:31, lcd_hole_d:3,
+  // --- 버튼/LED ---
+  btn_d:12, btn_gap:20, led_d:5,
+  // --- 앞면 패널 ---
+  panel_th:3,
+};
+C.ring_h=C.car_floor+C.pocket_depth;
+C.carousel_z=C.base_floor+C.bay_h+3;
+C.lid_z=C.carousel_z+C.ring_h+2;
+C.win_R=C.slot_radius;
+const S=(x,y,z)=>new THREE.Vector3(x,z,y);           // three(x,up,z)=SCAD(x,z,y)
+const CONN=[{n:'USB-C',c:0x9aa3b2},{n:'MicroUSB',c:0x8f98a8},{n:'MiniUSB',c:0xcaa94a},
+{n:'DC Jack',c:0x2b2b2b},{n:'RJ45',c:0xbfc4cc},{n:'USB-A',c:0xd9dde3},
+{n:'XT60',c:0xf2c53d},{n:'3.5 Jack',c:0x222226},{n:'D-sub9',c:0x9fa4ad},{n:'BoxHdr',c:0xcaa94a}];
+const TARGET=5;
+
+// ============================================================
+const app=document.getElementById('app');
+const scene=new THREE.Scene(); scene.fog=new THREE.Fog(0x14161c,460,1300);
+const camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,1,4000);
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.localClippingEnabled=true; app.appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xbdd0ff,0x30343e,.95));
+const key=new THREE.DirectionalLight(0xffffff,1);key.position.set(160,340,240);scene.add(key);
+const fill=new THREE.DirectionalLight(0x88aaff,.35);fill.position.set(-200,140,-160);scene.add(fill);
+scene.add(new THREE.GridHelper(640,26,0x3a4050,0x23272f));
+
+const mat=(c,r=.7,m=.1)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});
+const M={base:mat(0x4a505f,.6,.2),carousel:mat(0xc9cfd8,.55,.25),lid:mat(0x3a3f4b,.75,.15),
+  slide:mat(0xe2603f,.5,.2),cam:mat(0xd98a3a,.6,.2),lens:mat(0x0a0a0c,.3,.5),hub:mat(0x6b7382,.5,.4),
+  panel:mat(0x24272f,.85,.08),pi:mat(0x2e8b57,.6,.2),stm:mat(0x1f6feb,.6,.2),bread:mat(0xe8c14a,.85,.05),
+  servo:mat(0xc9b458,.7,.1),horn:mat(0xffffff,.4,.1),rail:mat(0x2b2f38,.7,.15),lcdpcb:mat(0x123512,.7,.1)};
+function box(w,h,d,m){return new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);}
+function cyl(r,h,m,s=48){return new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,s),m);}
+function ring(ro,ri,h,m,s=64){return new THREE.Mesh(new THREE.CylinderGeometry(ro,ro,h,s).clone(),m);} // placeholder
+function label(t,color='#cfd5e4',size=42){const cv=document.createElement('canvas');cv.width=256;cv.height=64;
+  const g=cv.getContext('2d');g.fillStyle=color;g.font=`bold ${size}px Arial`;g.textAlign='center';g.textBaseline='middle';g.fillText(t,128,34);
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true}));sp.scale.set(46,11.5,1);return sp;}
+function place(mesh,vec,rot){mesh.position.copy(vec);if(rot)mesh.rotation.copy(rot);return mesh;}
+
+const clip=new THREE.Plane(new THREE.Vector3(-1,0,0),0);let clipping=false;
+function setClip(on){clipping=on;[M.base,M.carousel,M.lid,M.pi,M.stm,M.bread,M.hub,M.panel,M.servo].forEach(m=>m.clippingPlanes=on?[clip]:[]);}
+
+const root=new THREE.Group();scene.add(root);
+
+// ===== 하부 수납 베이스 =====
+const gBay=new THREE.Group();root.add(gBay);
+gBay.add(place(cyl(C.base_dia/2,C.base_floor,M.base),S(0,0,C.base_floor/2)));
+gBay.add(place(cyl(C.base_dia/2,C.bay_h,M.base),S(0,0,C.base_floor+C.bay_h/2)));
+gBay.add(place(cyl(C.base_dia/2-6,C.bay_h+.5,mat(0x1a1c22,.9)),S(0,0,C.base_floor+C.bay_h/2+.3)));
+gBay.add(place(box(46,22,3,mat(0x14161c)),S(0,C.base_dia/2-1,C.base_floor+22))); // 앞 통풍/케이블
+
+// ===== 하부 전자부품 =====
+const gElec=new THREE.Group();root.add(gElec);
+gElec.add(place(box(85,16,56,M.pi),S(-30,-20,C.base_floor+10)));
+gElec.add(place(label('Pi 4','#bfeacb'),S(-30,-20,C.base_floor+22)));
+gElec.add(place(box(53,12,40,M.stm),S(38,25,C.base_floor+8)));
+gElec.add(place(label('STM32','#bcd4ff'),S(38,25,C.base_floor+18)));
+gElec.add(place(box(56,10,84,M.bread),S(30,-30,C.base_floor+7)));
+gElec.add(place(label('Breadboard','#3a2f10',30),S(30,-30,C.base_floor+15)));
+
+// ===== 캐러셀 =====
+const gCar=new THREE.Group();gCar.position.copy(S(0,0,C.carousel_z));root.add(gCar);
+gCar.add(place(cyl(C.carousel_dia/2,C.car_floor,M.carousel),S(0,0,C.car_floor/2)));
+gCar.add(place(cyl(C.hub_dia/2,10,M.hub,24),S(0,0,5)));
+const slots=[];
+for(let i=0;i<C.slot_count;i++){
+  const a=i*2*Math.PI/C.slot_count,sx=Math.sin(a)*C.slot_radius,sz=Math.cos(a)*C.slot_radius;
+  const tr=new THREE.Group();
+  const outer=box(C.pocket_len+4,C.ring_h,C.pocket_wid+4,M.carousel);outer.position.y=C.ring_h/2;tr.add(outer);
+  const cav=box(C.pocket_len,C.pocket_depth+2,C.pocket_wid,mat(0x2a2d34,.9));cav.position.y=C.car_floor+C.pocket_depth/2+1;tr.add(cav);
+  const cn=CONN[i];const tok=box(C.pocket_len*.5,7,C.pocket_wid*.55,mat(cn.c,.5,.3));tok.position.y=C.car_floor+4;tr.add(tok);
+  const lb=label(cn.n);lb.position.set(0,C.ring_h+9,0);tr.add(lb);
+  tr.position.set(sx,0,sz);tr.rotation.y=a;tr.userData={tok,base:cn.c};slots.push(tr);gCar.add(tr);
+}
+gCar.add(place(box(6,C.ring_h,6,mat(0xff5a5a,.5,.2)),new THREE.Vector3(0,C.ring_h/2,C.carousel_dia/2-3)));
+
+// ===== 상판 덮개 + 구멍 + 레일 =====
+const gLid=new THREE.Group();root.add(gLid);
+const lidMat=M.lid.clone();
+gLid.add(place(cyl(C.carousel_dia/2+3,C.lid_th,lidMat),S(0,0,C.lid_z+C.lid_th/2)));
+const winPos=S(0,C.win_R,C.lid_z+C.lid_th/2);
+gLid.add(place(box(C.win_len,C.lid_th+1,C.win_wid,mat(0x0c0d11,.9)),winPos));           // 구멍(뚫림)
+gLid.add(place(box(C.win_len+8,C.lid_th+2,C.win_wid+8,mat(0x2b2f38,.8)),new THREE.Vector3(winPos.x,winPos.y-0.3,winPos.z))); // 테두리
+// 슬라이드 레일 2줄 (덮개가 +X방향으로 미끄러짐)
+const railZ=C.lid_z+C.lid_th;
+for(const s of [-1,1]){
+  gLid.add(place(box(C.win_len+C.slide_travel+10,C.slide_rail,3,M.rail),
+    S(C.slide_travel/2, C.win_R + s*(C.win_wid/2+4), railZ+C.slide_rail/2)));
+}
+
+// ===== 슬라이드 덮개 (옆으로 개방) =====
+const gSlide=new THREE.Group(); root.add(gSlide);
+const slideMesh=box(C.win_len+C.slide_over, C.slide_th, C.win_wid+C.slide_over, M.slide);
+gSlide.add(place(slideMesh, S(0,0,0)));
+// 손잡이 돌기
+gSlide.add(place(box(6,4,C.win_wid,M.slide), S(-(C.win_len+C.slide_over)/2+2,0,0)));
+gSlide.position.copy(S(0,C.win_R,railZ+C.slide_rail-1)); // 닫힘 위치
+const slideClosedX=0, slideOpenX=C.slide_travel;
+
+// ===== 서보(SG90) + 혼 링크 — 덮개 옆 =====
+const gServo=new THREE.Group(); root.add(gServo);
+const servoX=C.win_len/2+C.slide_travel+18;      // 구멍 우측, 열리는 방향 끝
+const servoZbase=C.lid_z-C.sg_h+C.lid_th;        // 덮개 아래에 몸통
+// 몸통
+gServo.add(place(box(C.sg_l,C.sg_h,C.sg_w,M.servo), S(servoX,C.win_R,servoZbase+C.sg_h/2)));
+// 마운트 이어(양쪽)
+gServo.add(place(box(C.sg_lug,C.sg_tab_h,C.sg_w,M.servo), S(servoX,C.win_R,servoZbase+C.sg_h-4)));
+// 서보 마운트 브래킷(덮개판에 고정되는 기둥)
+gServo.add(place(box(C.sg_lug+6,4,C.sg_w+8,M.rail), S(servoX,C.win_R,railZ+2)));
+// 혼(회전 원판) — 위쪽
+const hornPivot=new THREE.Group(); hornPivot.position.copy(S(servoX,C.win_R,railZ+4)); gServo.add(hornPivot);
+const horn=box(C.sg_horn_r*2,2,4,M.horn); horn.position.set(C.sg_horn_r-2,0,0); hornPivot.add(horn);
+// 링크(혼 끝 → 슬라이드 덮개) — 선으로 표현
+const linkGeo=new THREE.BufferGeometry();
+const link=new THREE.Line(linkGeo,new THREE.LineBasicMaterial({color:0xffffff}));
+gServo.add(link);
+function updateLink(){
+  const hornTip=new THREE.Vector3(C.sg_horn_r*2-2,0,0).applyEuler(hornPivot.rotation).add(hornPivot.position);
+  const slideEdge=S((C.win_len+C.slide_over)/2, C.win_R, railZ+C.slide_rail-1).add(new THREE.Vector3(gSlide.position.x,0,0)).setX((C.win_len+C.slide_over)/2 + (gSlide.position.x));
+  // gSlide moves along three X; edge world:
+  const edge=new THREE.Vector3((C.win_len+C.slide_over)/2 + gSlide.position.x - 0, gSlide.position.y, gSlide.position.z);
+  linkGeo.setFromPoints([hornTip, edge]);
+}
+
+// ===== 카메라 =====
+const gCam=new THREE.Group();root.add(gCam);
+const camTop=C.lid_z+C.cam_h, armX=C.win_len/2+14;
+gCam.add(place(box(6,C.cam_h,6,M.cam),S(-armX,C.win_R,C.lid_z+C.cam_h/2)));  // 기둥(좌측, 서보 반대편)
+gCam.add(place(box(armX*2,6,8,M.cam),S(0,C.win_R,camTop)));
+gCam.add(place(box(26,16,26,M.cam),S(0,C.win_R,camTop-8)));
+gCam.add(place(cyl(7,7,M.lens,24),S(0,C.win_R,camTop-15)));
+const cone=new THREE.Mesh(new THREE.ConeGeometry(C.win_len*.6,C.cam_h-20,4,1,true),new THREE.MeshBasicMaterial({color:0xf2c53d,transparent:true,opacity:.08,side:THREE.DoubleSide}));
+cone.position.copy(S(0,C.win_R,(C.lid_z+camTop-15)/2));cone.rotation.y=Math.PI/4;gCam.add(cone);
+// FFC 케이블
+const cablePts=[S(0,C.win_R+8,camTop-14),S(-armX-6,C.win_R+8,C.lid_z+40),S(-armX-6,C.win_R,C.base_floor+30),S(-10,-10,C.base_floor+18)];
+gCam.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(cablePts),new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.5})));
+
+// ===== 앞면 UI 패널 (LCD 구멍/버튼 홀/LED 상세) =====
+const gUI=new THREE.Group();root.add(gUI);
+const uiZ=C.carousel_dia/2+5, uiTilt=-0.22;
+const uiEul=new THREE.Euler(uiTilt,0,0);
+// 패널판(테두리만, 가운데 LCD창은 뚫림 표현: 어두운 창 + PCB)
+const panelW=130, panelH=54;
+gUI.add(place(box(panelW,panelH,C.panel_th,M.panel), S(0,uiZ,C.carousel_z+24), uiEul));
+// LCD: PCB(초록) + 표시창 + 4모서리 마운트홀
+const lcdC=S(-24,uiZ+1.5,C.carousel_z+30);
+gUI.add(place(box(C.lcd_mod_w,C.lcd_mod_h,1.2,M.lcdpcb), lcdC, uiEul));
+const lcdCv=document.createElement('canvas');lcdCv.width=320;lcdCv.height=96;const lcdTex=new THREE.CanvasTexture(lcdCv);
+function drawLCD(a,b){const g=lcdCv.getContext('2d');g.fillStyle='#173d17';g.fillRect(0,0,320,96);g.fillStyle='#7dff7d';g.font="bold 26px 'Courier New',monospace";g.textBaseline='middle';g.fillText((a||'').padEnd(16).slice(0,16),12,30);g.fillText((b||'').padEnd(16).slice(0,16),12,66);lcdTex.needsUpdate=true;}
+gUI.add(place(box(C.lcd_win_w,C.lcd_win_h,1,new THREE.MeshBasicMaterial({map:lcdTex})), S(lcdC.x,lcdC.y+.6,lcdC.z), uiEul));
+// LCD 마운트홀 4 (시각)
+for(const sx of[-1,1])for(const sy of[-1,1])
+  gUI.add(place(cyl(C.lcd_hole_d/2,2,mat(0x0c0d11),12), S(lcdC.x+sx*C.lcd_hole_x/2, lcdC.y+1, lcdC.z+sy*C.lcd_hole_y/2*Math.cos(uiTilt)), new THREE.Euler(Math.PI/2+uiTilt,0,0)));
+// 버튼 3 (구멍 크기 btn_d) + 색
+const btnCols=[0x3a7bff,0x2e9e4b,0xd83a3a],btnNames=['SCAN','OK','CANCEL'];
+btnCols.forEach((bc,i)=>{
+  const bx=30+i*C.btn_gap;
+  gUI.add(place(cyl(C.btn_d/2,3,mat(bc,.4,.2),20), S(bx,uiZ+2,C.carousel_z+28), new THREE.Euler(Math.PI/2+uiTilt,0,0)));
+  const t=label(btnNames[i],'#aeb6c9',26); t.scale.set(20,5,1); gUI.add(place(t,S(bx,uiZ+2,C.carousel_z+18)));
+});
+// RGB LED
+const led=new THREE.Mesh(new THREE.SphereGeometry(C.led_d/2,20,20),new THREE.MeshStandardMaterial({color:0x3a7bff,emissive:0x3a7bff,emissiveIntensity:1.5}));
+led.position.copy(S(30,uiZ+3,C.carousel_z+36));gUI.add(led);
+
+// 앞 방향 화살표
+const arrow=new THREE.Mesh(new THREE.ConeGeometry(9,20,4),new THREE.MeshBasicMaterial({color:0x3a7bff}));
+arrow.position.copy(S(0,C.carousel_dia/2+42,6));arrow.rotation.x=-Math.PI/2;arrow.rotation.z=Math.PI/4;scene.add(arrow);
+
+// 샘플
+const sample=box(16,7,12,mat(0xd9dde3,.5,.3));sample.position.copy(S(0,C.win_R,C.lid_z+C.lid_th+5));sample.visible=false;scene.add(sample);
+
+// ===== 오빗 =====
+const target=new THREE.Vector3(0,72,20);let az=0.45,pol=1.0,rad=500;
+function updateCam(){camera.position.set(target.x+rad*Math.sin(pol)*Math.sin(az),target.y+rad*Math.cos(pol),target.z+rad*Math.sin(pol)*Math.cos(az));camera.lookAt(target);}
+updateCam();
+let drag=false,px=0,py=0;
+renderer.domElement.addEventListener('pointerdown',e=>{drag=true;px=e.clientX;py=e.clientY});
+addEventListener('pointerup',()=>drag=false);
+addEventListener('pointermove',e=>{if(!drag)return;az-=(e.clientX-px)*.008;pol-=(e.clientY-py)*.008;pol=Math.max(.2,Math.min(1.5,pol));px=e.clientX;py=e.clientY;updateCam();});
+renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();rad*=(1+Math.sign(e.deltaY)*.08);rad=Math.max(200,Math.min(1200,rad));updateCam();},{passive:false});
+
+// ===== 상태머신 =====
+// 핵심 변경: 슬롯 인식 단계부터 덮개가 열린 상태 유지 → 카메라가 각 슬롯 확인
+const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const LED={idle:0x3a7bff,scan:0xf2c53d,ready:0x2e9e4b},LEDN={idle:'대기 (Ready)',scan:'AI 인식 중',ready:'준비 완료 (Take)'};
+const STEP=2*Math.PI/C.slot_count;const angleForSlot=i=>-i*STEP;
+const SEQ=[
+  {name:'IDLE',led:'idle',l1:'Ready',l2:'Place sample',dur:1100,act:'idle',lid:0},
+  {name:'샘플 스캔',led:'scan',l1:'Scanning...',l2:'sample',dur:1400,act:'sample',lid:0},
+  {name:'AI 판정',led:'scan',l1:'USB-A   97%',l2:'Remove & OK',dur:1500,act:'result',lid:0},
+  {name:'샘플 제거→덮개 개방',led:'scan',l1:'Searching...',l2:'open lid',dur:1200,act:'openlid',lid:1},
+  ...Array.from({length:TARGET+1},(_,k)=>({name:`슬롯 인식 ${k} (덮개 열림)`,led:'scan',l1:'Reading...',l2:CONN[k].n,dur:k===TARGET?900:650,act:'index',slot:k,lid:1})),
+  {name:'매칭!',led:'ready',l1:'Found: '+CONN[TARGET].n,l2:'Ready',dur:900,act:'match',lid:1},
+  {name:'수령 대기(열림)',led:'ready',l1:'Take '+CONN[TARGET].n,l2:'...',dur:1600,act:'wait',lid:1},
+  {name:'덮개 닫힘',led:'ready',l1:'Thank You!',l2:'Have a nice',dur:1300,act:'close',lid:0},
+  {name:'IDLE',led:'idle',l1:'Ready',l2:'Place sample',dur:1000,act:'idle',lid:0},
+];
+let idx=0,playing=false,t0=0,rotFrom=0,rotTo=0,lidFrom=0,lidTo=0,spin=false;
+function setLid(v){ // v:0닫힘~1열림
+  gSlide.position.x = slideClosedX + (slideOpenX-slideClosedX)*v;
+  hornPivot.rotation.y = -v*1.4;   // 서보 혼 회전
+  updateLink();
+}
+function readingText(i){const s=SEQ[i];
+  if(s.act==='index'){const f=s.slot===TARGET;return `카메라 판독: <b>${CONN[s.slot].n}</b> ${f?'✓ 일치!':'✗ 다음'} (덮개 열린채)`;}
+  if(s.act==='sample')return '카메라: 샘플 인식 중…';
+  if(s.act==='result')return '결과: <b>USB-A</b> → 이걸 찾는다';
+  if(s.act==='openlid')return '샘플 치우고 OK → 서보가 덮개 옆으로 개방';
+  if(s.act==='match')return `목표 <b>${CONN[TARGET].n}</b> 발견 → 정지 (열린 상태로 수령)`;return '';}
+function apply(i,instant){const s=SEQ[i];idx=i;
+  document.getElementById('lcd').textContent=s.l1+'\n'+s.l2;drawLCD(s.l1,s.l2);
+  const c=LED[s.led];led.material.color.setHex(c);led.material.emissive.setHex(c);
+  const dot=document.getElementById('led');dot.style.color='#'+c.toString(16).padStart(6,'0');dot.style.background=dot.style.color;
+  document.getElementById('ledlabel').textContent=LEDN[s.led];
+  document.getElementById('stepname').textContent=s.name;
+  document.getElementById('reading').innerHTML=readingText(i);
+  sample.visible=(s.act==='sample'||s.act==='result');
+  slots.forEach(t=>t.userData.tok.material.color.setHex(t.userData.base));
+  if(s.act==='index')slots[s.slot].userData.tok.material.color.setHex(s.slot===TARGET?0x2e9e4b:0xf2c53d);
+  if(['match','wait'].includes(s.act))slots[TARGET].userData.tok.material.color.setHex(0x2e9e4b);
+  if(s.act==='index'){rotFrom=gCar.rotation.y;rotTo=angleForSlot(s.slot);}
+  if(instant){
+    if(['index','match','wait','close'].includes(s.act))gCar.rotation.y=angleForSlot(s.slot??TARGET);
+    else gCar.rotation.y=0;
+    setLid(s.lid);
+  }
+  lidFrom=(instant?s.lid:lidFrom); lidTo=s.lid;
+}
+function tick(now){requestAnimationFrame(tick);
+  if(spin&&!drag){az+=0.0035;updateCam();}
+  if(playing){const s=SEQ[idx],p=Math.min(1,(now-t0)/s.dur),e=ease(p);
+    if(s.act==='index')gCar.rotation.y=rotFrom+(rotTo-rotFrom)*e;
+    if(s.act==='openlid')setLid(e);         // 닫→열
+    if(s.act==='close')setLid(1-e);         // 열→닫
+    if(s.act==='sample'||s.act==='result')sample.position.y=C.lid_z+C.lid_th+5+Math.sin(now/180)*.6;
+    if(p>=1){if(idx<SEQ.length-1){idx++;t0=now;apply(idx,false);}else{playing=false;document.getElementById('play').textContent='▶ 동작 재생';}}
+  } else { updateLink(); }
+  renderer.render(scene,camera);}
+requestAnimationFrame(tick);
+
+// ===== UI =====
+const $=id=>document.getElementById(id);
+$('play').onclick=()=>{if(playing){playing=false;$('play').textContent='▶ 동작 재생';return;}idx=0;apply(0,true);playing=true;t0=performance.now();$('play').textContent='⏸ 일시정지';};
+$('next').onclick=()=>{playing=false;$('play').textContent='▶ 동작 재생';idx=(idx+1)%SEQ.length;apply(idx,true);};
+$('prev').onclick=()=>{playing=false;$('play').textContent='▶ 동작 재생';idx=(idx-1+SEQ.length)%SEQ.length;apply(idx,true);};
+$('reset').onclick=()=>{playing=false;$('play').textContent='▶ 동작 재생';idx=0;apply(0,true);az=.45;pol=1.0;rad=500;updateCam();};
+$('cut').onclick=()=>{setClip(!clipping);$('cut').classList.toggle('on',clipping);};
+$('lidcut').onclick=()=>{const t=!(lidMat.opacity<1);lidMat.transparent=true;lidMat.opacity=t?0.22:1;$('lidcut').classList.toggle('on',t);};
+$('spin').onclick=()=>{spin=!spin;$('spin').classList.toggle('on',spin);};
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+apply(0,true);
+</script>
+</body>
+</html>
