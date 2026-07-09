@@ -1,0 +1,107 @@
+!SESSION 2026-07-08 15:19:16.009 -----------------------------------------------
+eclipse.buildId=Version 2.2.0
+java.version=21.0.10
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=macosx, ARCH=x86_64, WS=cocoa, NL=ko_KR
+Framework arguments:  -keyring /Users/min/.eclipse_keyring
+Command-line arguments:  -os macosx -ws cocoa -arch x86_64 -keyring /Users/min/.eclipse_keyring -data /Users/min/Desktop/ai-connector-finder
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2026-07-08 15:19:22.690
+!MESSAGE Log4j2 initialized with config file /Users/min/Desktop/ai-connector-finder/.metadata/.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 4 4 2026-07-08 15:19:25.636
+!MESSAGE ProjectImporter: mdfind -name lsregister didn't returned anything
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2026-07-08 15:19:26.165
+!MESSAGE Started RMI Server, listening on port 41338
+!SESSION 2026-07-08 15:19:53.692 -----------------------------------------------
+eclipse.buildId=Version 2.2.0
+java.version=21.0.10
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=macosx, ARCH=x86_64, WS=cocoa, NL=ko_KR
+Framework arguments:  -keyring /Users/min/.eclipse_keyring
+Command-line arguments:  -os macosx -ws cocoa -arch x86_64 -keyring /Users/min/.eclipse_keyring -data /Users/min/Desktop/ai-connector-finder
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2026-07-08 15:19:59.345
+!MESSAGE Log4j2 initialized with config file /Users/min/Desktop/ai-connector-finder/.metadata/.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 4 4 2026-07-08 15:20:02.450
+!MESSAGE ProjectImporter: mdfind -name lsregister didn't returned anything
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2026-07-08 15:20:03.651
+!MESSAGE Started RMI Server, listening on port 41339
+
+!ENTRY org.eclipse.equinox.p2.transport.ecf 4 1002 2026-07-08 15:22:56.904
+!MESSAGE Unable to read repository at https://download.eclipse.org/tools/cdt/releases/latest/content.xml.
+!STACK 0
+java.io.IOException: Operation timed out
+	at java.base/sun.nio.ch.SocketDispatcher.read0(Native Method)
+	at java.base/sun.nio.ch.SocketDispatcher.read(SocketDispatcher.java:47)
+	at java.base/sun.nio.ch.IOUtil.readIntoNativeBuffer(IOUtil.java:340)
+	at java.base/sun.nio.ch.IOUtil.read(IOUtil.java:294)
+	at java.base/sun.nio.ch.IOUtil.read(IOUtil.java:269)
+	at java.base/sun.nio.ch.SocketChannelImpl.read(SocketChannelImpl.java:425)
+	at java.net.http/jdk.internal.net.http.SocketTube.readAvailable(SocketTube.java:1178)
+	at java.net.http/jdk.internal.net.http.SocketTube$InternalReadPublisher$InternalReadSubscription.read(SocketTube.java:841)
+	at java.net.http/jdk.internal.net.http.SocketTube$SocketFlowTask.run(SocketTube.java:181)
+	at java.net.http/jdk.internal.net.http.common.SequentialScheduler$SchedulableTask.run(SequentialScheduler.java:207)
+	at java.net.http/jdk.internal.net.http.common.SequentialScheduler.runOrSchedule(SequentialScheduler.java:280)
+	at java.net.http/jdk.internal.net.http.common.SequentialScheduler.runOrSchedule(SequentialScheduler.java:233)
+	at java.net.http/jdk.internal.net.http.SocketTube$InternalReadPublisher$InternalReadSubscription.signalReadable(SocketTube.java:782)
+	at java.net.http/jdk.internal.net.http.SocketTube$InternalReadPublisher$ReadEvent.signalEvent(SocketTube.java:965)
+	at java.net.http/jdk.internal.net.http.SocketTube$SocketFlowEvent.handle(SocketTube.java:253)
+	at java.net.http/jdk.internal.net.http.HttpClientImpl$SelectorManager.handleEvent(HttpClientImpl.java:1477)
+	at java.net.http/jdk.internal.net.http.HttpClientImpl$SelectorManager.lambda$run$3(HttpClientImpl.java:1422)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.net.http/jdk.internal.net.http.HttpClientImpl$SelectorManager.run(HttpClientImpl.java:1422)
+!SESSION 2026-07-08 16:10:27.004 -----------------------------------------------
+eclipse.buildId=Version 2.2.0
+java.version=21.0.10
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=macosx, ARCH=x86_64, WS=cocoa, NL=ko_KR
+Framework arguments:  -keyring /Users/min/.eclipse_keyring
+Command-line arguments:  -os macosx -ws cocoa -arch x86_64 -keyring /Users/min/.eclipse_keyring
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2026-07-08 16:10:57.540
+!MESSAGE Log4j2 initialized with config file /Users/min/Desktop/ai-connector-finder/.metadata/.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2026-07-08 16:11:00.485
+!MESSAGE Started RMI Server, listening on port 41337
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 4 4 2026-07-08 16:11:00.547
+!MESSAGE ProjectImporter: mdfind -name lsregister didn't returned anything
+
+!ENTRY org.eclipse.ui.ide 4 0 2026-07-08 16:11:54.439
+!MESSAGE Could not import project located at /Users/min/Desktop/ai-connector-finder
+!STACK 0
+org.eclipse.ui.internal.wizards.datatransfer.CouldNotImportProjectException: Could not import project located at /Users/min/Desktop/ai-connector-finder
+	at org.eclipse.ui.internal.wizards.datatransfer.SmartImportJob.toExistingOrNewProject(SmartImportJob.java:555)
+	at org.eclipse.ui.internal.wizards.datatransfer.SmartImportJob.run(SmartImportJob.java:246)
+	at org.eclipse.core.internal.jobs.Worker.run(Worker.java:63)
+Caused by: org.eclipse.core.internal.resources.ResourceException: Invalid project description for project 'ai-connector-finder' at 'file:/Users/min/Desktop/ai-connector-finder' 
+	at org.eclipse.core.internal.resources.Project.checkDescription(Project.java:219)
+	at org.eclipse.core.internal.resources.Project.assertCreateRequirements(Project.java:95)
+	at org.eclipse.core.internal.resources.Project.create(Project.java:316)
+	at org.eclipse.core.internal.resources.Project.create(Project.java:302)
+	at org.eclipse.ui.internal.wizards.datatransfer.SmartImportJob.createOrImportProject(SmartImportJob.java:594)
+	at org.eclipse.ui.internal.wizards.datatransfer.SmartImportJob.toExistingOrNewProject(SmartImportJob.java:542)
+	... 2 more
+!SESSION 2026-07-09 10:02:58.204 -----------------------------------------------
+eclipse.buildId=Version 2.2.0
+java.version=21.0.10
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=macosx, ARCH=x86_64, WS=cocoa, NL=ko_KR
+Framework arguments:  -keyring /Users/min/.eclipse_keyring
+Command-line arguments:  -os macosx -ws cocoa -arch x86_64 -keyring /Users/min/.eclipse_keyring
+
+!ENTRY org.eclipse.core.resources 2 10035 2026-07-09 10:03:04.349
+!MESSAGE The workspace exited with unsaved changes in the previous session; refreshing workspace to recover changes.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2026-07-09 10:03:07.974
+!MESSAGE Log4j2 initialized with config file /Users/min/Desktop/ai-connector-finder/.metadata/.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2026-07-09 10:03:12.302
+!MESSAGE Started RMI Server, listening on port 41337
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 4 4 2026-07-09 10:03:12.407
+!MESSAGE ProjectImporter: mdfind -name lsregister didn't returned anything
