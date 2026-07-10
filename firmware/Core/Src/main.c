@@ -18,11 +18,12 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "tim.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "stepper.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -54,7 +55,16 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+void servoMoveTo(uint16_t target_ccr, uint16_t step_delay_ms)
+{
+    uint16_t cur = TIM2->CCR1;
+    while (cur != target_ccr)
+    {
+        cur = (cur < target_ccr) ? cur + 1 : cur - 1;
+        TIM2->CCR1 = cur;
+        HAL_Delay(step_delay_ms);
+    }
+}
 /* USER CODE END 0 */
 
 /**
@@ -86,14 +96,26 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_TIM11_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_TIM_Base_Start(&htim11);
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+//  rotateDegrees(300, DIR_CW);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  servoMoveTo(500,  2);   // 0°
+	  HAL_Delay(500);
+	  servoMoveTo(2400, 2);  // 180°
+	  HAL_Delay(500);
+//	  rotateCarouselContinuous(DIR_CW);  // Pi ABORT 수신 전까지 연속 회전
+//	  HAL_Delay(3000);                   // 3초 후 다시 회전 (테스트용)
+
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

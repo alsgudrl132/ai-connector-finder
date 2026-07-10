@@ -1,0 +1,6 @@
+../Core/Src/stepper.c:25:6:stepMotor	16	static
+../Core/Src/stepper.c:32:6:stepperOff	8	static
+../Core/Src/stepper.c:41:6:stepperRequestStop	4	static
+../Core/Src/stepper.c:47:6:rotateCarouselContinuous	24	static
+../Core/Src/stepper.c:71:6:rotateSteps	24	static
+../Core/Src/stepper.c:84:6:rotateDegrees	24	static

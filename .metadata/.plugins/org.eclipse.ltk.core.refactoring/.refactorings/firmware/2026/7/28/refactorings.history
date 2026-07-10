@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename resource &apos;firmware/Core/Inc/servo&apos; to &apos;servo.h&apos;" description="Rename resource &apos;servo&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="Core/Inc/servo" name="servo.h" stamp="1783654736734" updateReferences="true"/>
+</session>
